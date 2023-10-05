@@ -1,3 +1,8 @@
+---
+slug: next
+---
+
+
 
 CSR 의 단점으로부터 시작 SSR (React -> Next)
 
