@@ -1,0 +1,56 @@
+name: Publish
+env:
+  DIR: content
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. 현재(컨텐츠) 저장소를 ./stash 에 복제합니다.
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          path: stash
+      # 2. 블로그 저장소를 ./stash-blog 에 복제합니다.
+      - name: Checkout blog
+        uses: actions/checkout@v3
+        with:
+          path: stash-blog
+          repository: jaehunn/jaehun-blog
+          token: ${{ secrets.GIT_ACTION_TOKEN }}
+      # 3. obsidian-export 를 설치합니다.
+      - name: Install obsidian-export
+        run: |
+          wget https://github.com/zoni/obsidian-export/releases/download/v22.11.0/obsidian-export_Linux-x86_64.bin
+          chmod +x obsidian-export_Linux-x86_64.bin
+      # 4. obsidian-export 을 통해 변환된 새로운 컨텐츠를 ./stash-blog 에 새롭게 저장합니다.
+      - name: Run obsidian-export
+        run: |
+          rm -rf stash-blog/${{ env.DIR }} && mkdir stash-blog/${{ env.DIR }}
+          ./obsidian-export_Linux-x86_64.bin stash/${{ env.DIR }} stash-blog/${{ env.DIR }}
+      # 5. "jaehun/jaehun-blog" 저장소에 변경사항을 커밋하고 푸시합니다.
+      - name: Commit and Push to jaehun/jaehun-blog
+        run: |
+          cd stash-blog
+          git config user.name "Jaehun"
+          git config user.email "qkdwogns98@gmail.com"
+          git add .
+          git commit -m "Update content from Publish workflow"
+          git push origin main
+      # 6. ./stash-blog 하위 내용을 현재 저장소에 반영합니다. 그리고 기존 stash 폴더들은 제거됩니다.
+      - name: Update with the latest content.
+        run: |
+          cp -r stash-blog/. .
+          rm -rf stash
+          rm -rf stash-blog
+      # 7. Vercel 를 통해 배포합니다.
+      - name: Deploy Vercel
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }} # Required
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }} # Required
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }} # Required
+          vercel-args: "--prod"
