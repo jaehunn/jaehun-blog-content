@@ -6,5 +6,5 @@ createdAt: 2023-10-09
 updatedAt: 2023-10-19
 tags:
 ---
-Progress.
+Progress..
 
